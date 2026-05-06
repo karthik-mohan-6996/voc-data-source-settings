@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice of the Customer - Data Source Settings</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #f5f7fa; color: #333; min-height: 100vh; }
+        .app-container { display: flex; min-height: 100vh; }
+
+        .sidebar { width: 200px; background: #fff; border-right: 1px solid #e8ecf0; padding: 16px 0; position: fixed; height: 100vh; overflow-y: auto; }
+        .sidebar-header { padding: 0 14px 14px; border-bottom: 1px solid #e8ecf0; margin-bottom: 10px; }
+        .sidebar-header h2 { font-size: 13px; color: #6366f1; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+        .sidebar-nav { list-style: none; }
+        .sidebar-nav li { padding: 8px 14px; font-size: 12px; color: #555; cursor: pointer; border-left: 3px solid transparent; }
+        .sidebar-nav li:hover { background: #f8f9ff; color: #6366f1; }
+        .sidebar-nav li.active { background: #f0f0ff; color: #6366f1; border-left-color: #6366f1; font-weight: 500; }
+        .sidebar-nav li i { width: 16px; margin-right: 6px; font-size: 11px; }
+
+        .main-content { margin-left: 200px; flex: 1; padding: 20px 28px; max-width: 1000px; }
+        .page-header h1 { font-size: 18px; font-weight: 600; color: #1a1a2e; margin-bottom: 4px; }
+        .breadcrumb { font-size: 11px; color: #888; margin-bottom: 16px; }
+        .breadcrumb a { color: #6366f1; text-decoration: none; }
+
+        .card { background: #fff; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); padding: 18px 22px; margin-bottom: 16px; }
+        .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+        .card-header h3 { font-size: 14px; font-weight: 600; color: #1a1a2e; }
+
+        /* Source Dropdown - no checkboxes, just highlight on select */
+        .source-dropdown-wrap { position: relative; }
+        .source-dropdown-btn { width: 100%; padding: 10px 14px; border: 1.5px solid #e0e4ff; border-radius: 8px; background: #fff; font-size: 13px; font-family: inherit; cursor: pointer; display: flex; align-items: center; justify-content: space-between; color: #333; transition: border-color 0.2s; }
+        .source-dropdown-btn:hover, .source-dropdown-btn.open { border-color: #6366f1; }
+        .source-dropdown-btn i { color: #6366f1; font-size: 12px; transition: transform 0.2s; }
+        .source-dropdown-btn.open i { transform: rotate(180deg); }
+        .source-dropdown-menu { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #fff; border: 1px solid #e0e4ff; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 100; display: none; }
+        .source-dropdown-menu.open { display: block; }
+        .source-dropdown-item { padding: 10px 14px; font-size: 12px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: background 0.1s; border-radius: 4px; margin: 2px 4px; }
+        .source-dropdown-item:hover { background: #f5f5ff; }
+        .source-dropdown-item.selected { background: #eef0ff; font-weight: 500; }
+        .source-dropdown-item .src-icon { width: 26px; height: 26px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; }
+        .src-icon.email { background: #fef3c7; color: #d97706; }
+        .src-icon.survey { background: #dbeafe; color: #2563eb; }
+        .src-icon.calls { background: #d1fae5; color: #059669; }
+        .src-icon.social { background: #fce7f3; color: #db2777; }
+        .src-icon.desk { background: #e0e7ff; color: #4f46e5; }
+
+        .selected-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+        .selected-tag { background: #eef0ff; color: #4f46e5; padding: 5px 10px; border-radius: 14px; font-size: 11px; font-weight: 500; display: flex; align-items: center; gap: 5px; }
+        .selected-tag .remove-tag { cursor: pointer; font-size: 10px; color: #6366f1; opacity: 0.7; }
+        .selected-tag .remove-tag:hover { opacity: 1; }
+
+        /* Tabs */
+        .source-tabs { display: flex; gap: 0; border-bottom: 1.5px solid #e8ecf0; margin-bottom: 16px; overflow-x: auto; }
+        .source-tab { padding: 8px 14px; font-size: 12px; font-weight: 500; color: #666; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1.5px; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+        .source-tab:hover { color: #6366f1; }
+        .source-tab.active { color: #6366f1; border-bottom-color: #6366f1; }
+
+        /* Multi-select field picker */
+        .field-section { margin-bottom: 14px; }
+        .field-section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+        .field-section-header h4 { font-size: 12px; font-weight: 600; color: #1a1a2e; }
+        .select-actions { display: flex; gap: 8px; }
+        .select-actions span { font-size: 11px; color: #6366f1; cursor: pointer; font-weight: 500; }
+        .select-actions span:hover { text-decoration: underline; }
+
+        .multi-select-wrap { position: relative; }
+        .multi-select-box { border: 1.5px solid #e0e4ff; border-radius: 8px; padding: 8px 12px; min-height: 38px; cursor: pointer; display: flex; flex-wrap: wrap; gap: 5px; align-items: center; transition: border-color 0.2s; }
+        .multi-select-box:hover, .multi-select-box.open { border-color: #6366f1; }
+        .multi-select-box .placeholder { font-size: 12px; color: #999; }
+        .field-tag { background: #eef0ff; color: #4f46e5; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 500; display: flex; align-items: center; gap: 4px; }
+        .field-tag .remove-field { cursor: pointer; font-size: 9px; opacity: 0.7; }
+        .field-tag .remove-field:hover { opacity: 1; }
+        .multi-select-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #fff; border: 1px solid #e0e4ff; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 90; display: none; max-height: 220px; overflow-y: auto; }
+        .multi-select-dropdown.open { display: block; }
+        .ms-search { width: 100%; padding: 8px 12px; border: none; border-bottom: 1px solid #f0f0f0; font-size: 11px; font-family: inherit; outline: none; }
+        .ms-option { padding: 7px 12px; font-size: 11px; display: flex; align-items: center; gap: 8px; cursor: pointer; border-radius: 4px; margin: 2px 4px; }
+        .ms-option:hover { background: #f5f5ff; }
+        .ms-option.selected { background: #eef0ff; font-weight: 500; }
+        .ms-option i { color: #888; font-size: 11px; width: 14px; }
+
+        /* Social platform sub-tabs */
+        .social-subtabs { display: flex; gap: 0; margin-bottom: 12px; background: #f3f4f6; border-radius: 8px; padding: 3px; }
+        .social-subtab { padding: 6px 12px; font-size: 11px; font-weight: 500; color: #666; cursor: pointer; border-radius: 6px; display: flex; align-items: center; gap: 5px; }
+        .social-subtab:hover { color: #333; }
+        .social-subtab.active { background: #fff; color: #6366f1; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+
+        /* Third party section */
+        .section-heading { font-size: 15px; font-weight: 600; color: #1a1a2e; margin: 24px 0 6px; display: flex; align-items: center; gap: 8px; }
+        .section-heading i { color: #7c3aed; font-size: 14px; }
+        .section-desc { font-size: 12px; color: #666; margin-bottom: 12px; }
+        .tp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+        .tp-card { border: 1px solid #e8ecf0; border-radius: 8px; padding: 14px; background: #fff; }
+        .tp-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+        .tp-card-header h5 { font-size: 12px; font-weight: 600; color: #333; }
+        .tp-status { font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 10px; }
+        .tp-status.active { background: #d1fae5; color: #059669; }
+        .tp-status.failed { background: #fee2e2; color: #dc2626; }
+        .tp-status.progress { background: #dbeafe; color: #2563eb; }
+        .tp-meta { font-size: 11px; color: #666; }
+        .tp-meta div { display: flex; justify-content: space-between; padding: 3px 0; }
+        .tp-meta span:first-child { color: #888; }
+        .tp-add-btn { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: #6366f1; font-weight: 500; cursor: pointer; margin-top: 12px; padding: 6px 12px; border: 1px dashed #c7c7ff; border-radius: 6px; background: #fafaff; }
+        .tp-add-btn:hover { background: #eef0ff; border-color: #6366f1; }
+
+        /* Collapsible filters */
+        .filter-toggle { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #6366f1; cursor: pointer; font-weight: 500; margin-top: 10px; padding: 6px 0; }
+        .filter-toggle i { font-size: 10px; transition: transform 0.2s; }
+        .filter-toggle.open i.fa-chevron-right { transform: rotate(90deg); }
+        .filter-body { display: none; margin-top: 8px; padding: 12px; background: #f8f9ff; border: 1px solid #e0e4ff; border-radius: 8px; }
+        .filter-body.open { display: block; }
+        .filter-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; flex-wrap: wrap; }
+        .filter-row select, .filter-row input { padding: 5px 8px; border: 1px solid #d1d5db; border-radius: 5px; font-size: 11px; font-family: inherit; background: #fff; }
+        .filter-row select { min-width: 110px; }
+        .filter-row input { flex: 1; min-width: 120px; }
+        .filter-row .btn-icon { width: 24px; height: 24px; border: none; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+        .btn-add-filter { background: #e8e8ff; color: #6366f1; }
+        .btn-remove-filter { background: #fee2e2; color: #ef4444; }
+        .add-filter-link { font-size: 11px; color: #6366f1; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 3px; margin-top: 4px; }
+
+        /* Panels */
+        .source-preferences { display: none; animation: fadeIn 0.2s ease; }
+        .source-preferences.active { display: block; }
+        .social-panel { display: none; }
+        .social-panel.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+        .action-bar { display: flex; gap: 8px; margin-top: 16px; padding-top: 14px; border-top: 1px solid #e8ecf0; }
+        .btn { padding: 8px 18px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; border: none; font-family: inherit; }
+        .btn-primary { background: #6366f1; color: #fff; }
+        .btn-primary:hover { background: #4f46e5; box-shadow: 0 3px 10px rgba(99,102,241,0.25); }
+        .btn-secondary { background: #f3f4f6; color: #555; border: 1px solid #d1d5db; }
+        .btn-secondary:hover { background: #e5e7eb; }
+
+        .toast { position: fixed; bottom: 20px; right: 20px; background: #1a1a2e; color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 12px; display: none; align-items: center; gap: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); z-index: 1000; }
+        .toast.show { display: flex; animation: slideUp 0.25s ease; }
+        .toast i { color: #22c55e; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; padding: 14px; }
+            .tp-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="sidebar-header"><h2><i class="fas fa-robot"></i> Zia - VoC</h2></div>
+            <ul class="sidebar-nav">
+                <li><i class="fas fa-brain"></i> Models</li>
+                <li><i class="fas fa-database"></i> Data Enrichment</li>
+                <li><i class="fas fa-chart-line"></i> Prediction</li>
+                <li><i class="fas fa-lightbulb"></i> Recommendation</li>
+                <li><i class="fas fa-comments"></i> Communication</li>
+                <li><i class="fas fa-eye"></i> Vision</li>
+                <li><i class="fas fa-bell"></i> Notifications</li>
+                <li class="active"><i class="fas fa-headset"></i> Voice of Customer</li>
+                <li><i class="fas fa-flask"></i> Custom AI Studio</li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <div class="breadcrumb"><a href="#">Setup</a> &gt; Zia &gt; Voice of the Customer</div>
+            <h1 style="font-size:18px;font-weight:600;color:#1a1a2e;margin-bottom:16px;">Data Source Settings</h1>
+
+            <!-- Source Selection Dropdown -->
+            <div class="card">
+                <div class="card-header"><h3>Basic Sources</h3></div>
+                <div class="source-dropdown-wrap">
+                    <div class="source-dropdown-btn" id="sourceDropdownBtn" onclick="toggleSourceDropdown()">
+                        <span id="sourceDropdownLabel">Choose data sources...</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="source-dropdown-menu" id="sourceDropdownMenu">
+                        <div class="source-dropdown-item" data-source="email" onclick="toggleSourceItem(this)">
+                            <div class="src-icon email"><i class="fas fa-envelope"></i></div>
+                            <span>Email</span>
+                        </div>
+                        <div class="source-dropdown-item" data-source="survey" onclick="toggleSourceItem(this)">
+                            <div class="src-icon survey"><i class="fas fa-clipboard-list"></i></div>
+                            <span>Zoho Survey</span>
+                        </div>
+                        <div class="source-dropdown-item" data-source="calls" onclick="toggleSourceItem(this)">
+                            <div class="src-icon calls"><i class="fas fa-phone"></i></div>
+                            <span>Calls</span>
+                        </div>
+                        <div class="source-dropdown-item" data-source="social" onclick="toggleSourceItem(this)">
+                            <div class="src-icon social"><i class="fas fa-share-nodes"></i></div>
+                            <span>Social</span>
+                        </div>
+                        <div class="source-dropdown-item" data-source="desk" onclick="toggleSourceItem(this)">
+                            <div class="src-icon desk"><i class="fas fa-ticket"></i></div>
+                            <span>Zoho Desk</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="selected-tags" id="selectedTags"></div>
+            </div>
+
+            <!-- Preferences Panel -->
+            <div id="preferencesContainer" style="display:none;">
+                <div class="card">
+                    <div class="source-tabs" id="sourceTabs"></div>
+
+                    <!-- EMAIL -->
+                    <div class="source-preferences" id="pref-email">
+                        <div class="field-section">
+                            <div class="field-section-header">
+                                <h4>Select fields to ingest</h4>
+                                <div class="select-actions"><span onclick="selectAll('email')">All</span><span onclick="selectNone('email')">None</span></div>
+                            </div>
+                            <div class="multi-select-wrap">
+                                <div class="multi-select-box" onclick="toggleMultiSelect('email')"><span class="placeholder" id="ms-placeholder-email">Select fields...</span><div id="ms-tags-email" style="display:contents;"></div></div>
+                                <div class="multi-select-dropdown" id="ms-dropdown-email"><input class="ms-search" placeholder="Search fields..." oninput="filterFields('email', this.value)"><div id="ms-options-email"></div></div>
+                            </div>
+                        </div>
+                        <div class="filter-toggle" onclick="toggleFilter('email')"><i class="fas fa-chevron-right"></i> <i class="fas fa-filter"></i> Filters</div>
+                        <div class="filter-body" id="filter-body-email"><div id="email-filters"><div class="filter-row"><select><option>From</option><option>To</option><option>Subject</option><option>Date</option><option>Has Attachment</option><option>Label</option></select><select><option>Contains</option><option>Equals</option><option>Starts with</option><option>Not contains</option></select><input type="text" placeholder="Value..."><button class="btn-icon btn-add-filter" onclick="addFilter('email')"><i class="fas fa-plus"></i></button></div></div><span class="add-filter-link" onclick="addFilter('email')"><i class="fas fa-plus"></i> Add filter</span></div>
+                    </div>
+
+                    <!-- SURVEY -->
+                    <div class="source-preferences" id="pref-survey">
+                        <div class="field-section">
+                            <div class="field-section-header"><h4>Select fields to ingest</h4><div class="select-actions"><span onclick="selectAll('survey')">All</span><span onclick="selectNone('survey')">None</span></div></div>
+                            <div class="multi-select-wrap"><div class="multi-select-box" onclick="toggleMultiSelect('survey')"><span class="placeholder" id="ms-placeholder-survey">Select fields...</span><div id="ms-tags-survey" style="display:contents;"></div></div><div class="multi-select-dropdown" id="ms-dropdown-survey"><input class="ms-search" placeholder="Search fields..." oninput="filterFields('survey', this.value)"><div id="ms-options-survey"></div></div></div>
+                        </div>
+                        <div class="filter-toggle" onclick="toggleFilter('survey')"><i class="fas fa-chevron-right"></i> <i class="fas fa-filter"></i> Filters</div>
+                        <div class="filter-body" id="filter-body-survey"><div id="survey-filters"><div class="filter-row"><select><option>Survey Name</option><option>Respondent</option><option>Score</option><option>Status</option><option>Date</option></select><select><option>Contains</option><option>Equals</option><option>Greater than</option><option>Less than</option></select><input type="text" placeholder="Value..."><button class="btn-icon btn-add-filter" onclick="addFilter('survey')"><i class="fas fa-plus"></i></button></div></div><span class="add-filter-link" onclick="addFilter('survey')"><i class="fas fa-plus"></i> Add filter</span></div>
+                    </div>
+
+                    <!-- CALLS -->
+                    <div class="source-preferences" id="pref-calls">
+                        <div class="field-section">
+                            <div class="field-section-header"><h4>Select fields to ingest</h4><div class="select-actions"><span onclick="selectAll('calls')">All</span><span onclick="selectNone('calls')">None</span></div></div>
+                            <div class="multi-select-wrap"><div class="multi-select-box" onclick="toggleMultiSelect('calls')"><span class="placeholder" id="ms-placeholder-calls">Select fields...</span><div id="ms-tags-calls" style="display:contents;"></div></div><div class="multi-select-dropdown" id="ms-dropdown-calls"><input class="ms-search" placeholder="Search fields..." oninput="filterFields('calls', this.value)"><div id="ms-options-calls"></div></div></div>
+                        </div>
+                        <div class="filter-toggle" onclick="toggleFilter('calls')"><i class="fas fa-chevron-right"></i> <i class="fas fa-filter"></i> Filters</div>
+                        <div class="filter-body" id="filter-body-calls"><div id="calls-filters"><div class="filter-row"><select><option>Direction</option><option>Duration</option><option>Status</option><option>Agent</option><option>Date</option></select><select><option>Equals</option><option>Greater than</option><option>Less than</option><option>Contains</option></select><input type="text" placeholder="Value..."><button class="btn-icon btn-add-filter" onclick="addFilter('calls')"><i class="fas fa-plus"></i></button></div></div><span class="add-filter-link" onclick="addFilter('calls')"><i class="fas fa-plus"></i> Add filter</span></div>
+                    </div>
+
+                    <!-- SOCIAL -->
+                    <div class="source-preferences" id="pref-social">
+                        <div class="social-subtabs">
+                            <div class="social-subtab active" data-platform="twitter" onclick="switchSocialPlatform('twitter')"><i class="fab fa-x-twitter"></i> Twitter/X</div>
+                            <div class="social-subtab" data-platform="facebook" onclick="switchSocialPlatform('facebook')"><i class="fab fa-facebook"></i> Facebook</div>
+                            <div class="social-subtab" data-platform="instagram" onclick="switchSocialPlatform('instagram')"><i class="fab fa-instagram"></i> Instagram</div>
+                            <div class="social-subtab" data-platform="linkedin" onclick="switchSocialPlatform('linkedin')"><i class="fab fa-linkedin"></i> LinkedIn</div>
+                        </div>
+                        <div class="social-panel active" id="social-twitter">
+                            <div class="field-section"><div class="field-section-header"><h4>Twitter/X Fields</h4><div class="select-actions"><span onclick="selectAll('twitter')">All</span><span onclick="selectNone('twitter')">None</span></div></div><div class="multi-select-wrap"><div class="multi-select-box" onclick="toggleMultiSelect('twitter')"><span class="placeholder" id="ms-placeholder-twitter">Select fields...</span><div id="ms-tags-twitter" style="display:contents;"></div></div><div class="multi-select-dropdown" id="ms-dropdown-twitter"><input class="ms-search" placeholder="Search fields..." oninput="filterFields('twitter', this.value)"><div id="ms-options-twitter"></div></div></div></div>
+                            <div class="filter-toggle" onclick="toggleFilter('twitter')"><i class="fas fa-chevron-right"></i> <i class="fas fa-filter"></i> Filters</div>
+                            <div class="filter-body" id="filter-body-twitter"><div id="twitter-filters"><div class="filter-row"><select><option>Handle</option><option>Tweet Text</option><option>Hashtag</option><option>Mentions</option><option>Retweets (min)</option><option>Date</option></select><select><option>Contains</option><option>Equals</option><option>Greater than</option></select><input type="text" placeholder="Value..."><button class="btn-icon btn-add-filter" onclick="addFilter('twitter')"><i class="fas fa-plus"></i></button></div></div><span class="add-filter-link" onclick="addFilter('twitter')"><i class="fas fa-plus"></i> Add filter</span></div>
+                        </div>
+                        <div class="social-panel" id="social-facebook">
+                            <div class="field-section"><div class="field-section-header"><h4>Facebook Fields</h4><div class="select-actions"><span onclick="selectAll('facebook')">All</span><span onclick="selectNone('facebook')">None</span></div></div><div class="multi-select-wrap"><div class="multi-select-box" onclick="toggleMultiSelect('facebook')"><span class="placeholder" id="ms-placeholder-facebook">Select fields...</span><div id="ms-tags-facebook" style="display:contents;"></div></div><div class="multi-select-dropdown" id="ms-dropdown-facebook"><input class="ms-search" placeholder="Search fields..." oninput="filterFields('facebook', this.value)"><div id="ms-options-facebook"></div></div></div></div>
+                            <div class="filter-toggle" onclick="toggleFilter('facebook')"><i class="fas fa-chevron-right"></i> <i class="fas fa-filter"></i> Filters</div>
+                            <div class="filter-body" id="filter-body-facebook"><div id="facebook-filters"><div class="filter-row"><select><option>Page Name</option><option>Post Type</option><option>Comment</option><option>Reactions (min)</option><option>Date</option></select><select><option>Contains</option><option>Equals</option><option>Greater than</option></select><input type="text" placeholder="Value..."><button class="btn-icon btn-add-filter" onclick="addFilter('facebook')"><i class="fas fa-plus"></i></button></div></div><span class="add-filter-link" onclick="addFilter('facebook')"><i class="fas fa-plus"></i> Add filter</span></div>
+                        </div>
+                        <div class="social-panel" id="social-instagram">
+                            <div class="field-section"><div class="field-section-header"><h4>Instagram Fields</h4><div class="select-actions"><span onclick="selectAll('instagram')">All</span><span onclick="selectNone('instagram')">None</span></div></div><div class="multi-select-wrap"><div class="multi-select-box" onclick="toggleMultiSelect('instagram')"><span class="placeholder" id="ms-placeholder-instagram">Select fields...</span><div id="ms-tags-instagram" style="display:contents;"></div></div><div class="multi-select-dropdown" id="ms-dropdown-instagram"><input class="ms-search" placeholder="Search fields..." oninput="filterFields('instagram', this.value)"><div id="ms-options-instagram"></div></div></div></div>
+                            <div class="filter-toggle" onclick="toggleFilter('instagram')"><i class="fas fa-chevron-right"></i> <i class="fas fa-filter"></i> Filters</div>
+                            <div class="filter-body" id="filter-body-instagram"><div id="instagram-filters"><div class="filter-row"><select><option>Username</option><option>Caption</option><option>Hashtag</option><option>Likes (min)</option><option>Post Type</option><option>Date</option></select><select><option>Contains</option><option>Equals</option><option>Greater than</option></select><input type="text" placeholder="Value..."><button class="btn-icon btn-add-filter" onclick="addFilter('instagram')"><i class="fas fa-plus"></i></button></div></div><span class="add-filter-link" onclick="addFilter('instagram')"><i class="fas fa-plus"></i> Add filter</span></div>
+                        </div>
+                        <div class="social-panel" id="social-linkedin">
+                            <div class="field-section"><div class="field-section-header"><h4>LinkedIn Fields</h4><div class="select-actions"><span onclick="selectAll('linkedin')">All</span><span onclick="selectNone('linkedin')">None</span></div></div><div class="multi-select-wrap"><div class="multi-select-box" onclick="toggleMultiSelect('linkedin')"><span class="placeholder" id="ms-placeholder-linkedin">Select fields...</span><div id="ms-tags-linkedin" style="display:contents;"></div></div><div class="multi-select-dropdown" id="ms-dropdown-linkedin"><input class="ms-search" placeholder="Search fields..." oninput="filterFields('linkedin', this.value)"><div id="ms-options-linkedin"></div></div></div></div>
+                            <div class="filter-toggle" onclick="toggleFilter('linkedin')"><i class="fas fa-chevron-right"></i> <i class="fas fa-filter"></i> Filters</div>
+                            <div class="filter-body" id="filter-body-linkedin"><div id="linkedin-filters"><div class="filter-row"><select><option>Author</option><option>Post Text</option><option>Company</option><option>Reactions (min)</option><option>Date</option></select><select><option>Contains</option><option>Equals</option><option>Greater than</option></select><input type="text" placeholder="Value..."><button class="btn-icon btn-add-filter" onclick="addFilter('linkedin')"><i class="fas fa-plus"></i></button></div></div><span class="add-filter-link" onclick="addFilter('linkedin')"><i class="fas fa-plus"></i> Add filter</span></div>
+                        </div>
+                    </div>
+
+                    <!-- DESK -->
+                    <div class="source-preferences" id="pref-desk">
+                        <div class="field-section">
+                            <div class="field-section-header"><h4>Select fields to ingest</h4><div class="select-actions"><span onclick="selectAll('desk')">All</span><span onclick="selectNone('desk')">None</span></div></div>
+                            <div class="multi-select-wrap"><div class="multi-select-box" onclick="toggleMultiSelect('desk')"><span class="placeholder" id="ms-placeholder-desk">Select fields...</span><div id="ms-tags-desk" style="display:contents;"></div></div><div class="multi-select-dropdown" id="ms-dropdown-desk"><input class="ms-search" placeholder="Search fields..." oninput="filterFields('desk', this.value)"><div id="ms-options-desk"></div></div></div>
+                        </div>
+                        <div class="filter-toggle" onclick="toggleFilter('desk')"><i class="fas fa-chevron-right"></i> <i class="fas fa-filter"></i> Filters</div>
+                        <div class="filter-body" id="filter-body-desk"><div id="desk-filters"><div class="filter-row"><select><option>Status</option><option>Priority</option><option>Department</option><option>Agent</option><option>Rating</option><option>Date</option></select><select><option>Equals</option><option>Contains</option><option>Greater than</option><option>Is not</option></select><input type="text" placeholder="Value..."><button class="btn-icon btn-add-filter" onclick="addFilter('desk')"><i class="fas fa-plus"></i></button></div></div><span class="add-filter-link" onclick="addFilter('desk')"><i class="fas fa-plus"></i> Add filter</span></div>
+                    </div>
+
+                    <div class="action-bar">
+                        <button class="btn btn-primary" onclick="saveSettings()"><i class="fas fa-save"></i> Save</button>
+                        <button class="btn btn-secondary" onclick="resetAll()"><i class="fas fa-undo"></i> Reset</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- THIRD PARTY - Separate Section -->
+            <div class="section-heading"><i class="fas fa-plug"></i> Third Party Sources</div>
+            <p class="section-desc">External platforms not currently synced with your CRM such as Zendesk, WooCommerce, Jotform, or Google Forms that can be integrated via direct connection or URL to ingest broader customer sentiment.</p>
+
+            <div class="tp-grid">
+                <div class="tp-card">
+                    <div class="tp-card-header"><h5>woocommerce</h5><span class="tp-status active">Active</span></div>
+                    <div class="tp-meta"><div><span>Next Sync</span><span>03/05/2026 04:54 PM</span></div><div><span>Rows Synced</span><span>1</span></div></div>
+                </div>
+                <div class="tp-card">
+                    <div class="tp-card-header"><h5>g2 new</h5><span class="tp-status failed">Failed</span></div>
+                    <div class="tp-meta"><div><span>Next Sync</span><span>03/05/2026 04:09 PM</span></div><div><span>Rows Synced</span><span>27</span></div></div>
+                </div>
+                <div class="tp-card">
+                    <div class="tp-card-header"><h5>zendesk</h5><span class="tp-status failed">Failed</span></div>
+                    <div class="tp-meta"><div><span>Next Sync</span><span>05/05/2026 03:43 PM</span></div><div><span>Rows Synced</span><span>3</span></div></div>
+                </div>
+                <div class="tp-card">
+                    <div class="tp-card-header"><h5>googleplay</h5><span class="tp-status progress">In Progress</span></div>
+                    <div class="tp-meta"><div><span>Next Sync</span><span>04/05/2026 10:17 PM</span></div><div><span>Rows Synced</span><span>0</span></div></div>
+                </div>
+            </div>
+            <div class="tp-add-btn" onclick="showToast('Add Source dialog would open here')"><i class="fas fa-plus-circle"></i> Add Source</div>
+        </main>
+    </div>
+
+    <div class="toast" id="toast"><i class="fas fa-check-circle"></i><span id="toastMessage"></span></div>
+
+    <script>
+    const fields = {
+        email: [
+            {id:'from',icon:'fa-user',label:'From Address'},
+            {id:'to',icon:'fa-at',label:'To Address'},
+            {id:'subject',icon:'fa-heading',label:'Subject'},
+            {id:'body',icon:'fa-align-left',label:'Body'},
+            {id:'reply_to',icon:'fa-reply',label:'Reply-To'},
+            {id:'cc',icon:'fa-users',label:'CC'},
+            {id:'bcc',icon:'fa-user-secret',label:'BCC'},
+            {id:'attachments',icon:'fa-paperclip',label:'Attachments'},
+            {id:'timestamp',icon:'fa-clock',label:'Timestamp'},
+            {id:'thread',icon:'fa-layer-group',label:'Thread'},
+            {id:'labels',icon:'fa-tag',label:'Labels/Tags'},
+            {id:'sentiment',icon:'fa-face-smile',label:'Sentiment'}
+        ],
+        survey: [
+            {id:'title',icon:'fa-file-lines',label:'Survey Title'},
+            {id:'questions',icon:'fa-question-circle',label:'Questions'},
+            {id:'responses',icon:'fa-comment-dots',label:'Responses'},
+            {id:'ratings',icon:'fa-star',label:'Ratings/NPS'},
+            {id:'respondent',icon:'fa-user',label:'Respondent Info'},
+            {id:'submission_time',icon:'fa-clock',label:'Submission Time'},
+            {id:'completion',icon:'fa-check-double',label:'Completion Status'},
+            {id:'open_ended',icon:'fa-pen-fancy',label:'Open-Ended'},
+            {id:'mcq',icon:'fa-list-check',label:'MCQ Answers'},
+            {id:'device',icon:'fa-mobile',label:'Device Info'}
+        ],
+        calls: [
+            {id:'caller',icon:'fa-phone-volume',label:'Caller Number'},
+            {id:'receiver',icon:'fa-phone-flip',label:'Receiver'},
+            {id:'duration',icon:'fa-hourglass-half',label:'Duration'},
+            {id:'recording',icon:'fa-microphone',label:'Recording'},
+            {id:'transcription',icon:'fa-file-lines',label:'Transcription'},
+            {id:'direction',icon:'fa-arrow-right-arrow-left',label:'Direction'},
+            {id:'status',icon:'fa-circle-check',label:'Status'},
+            {id:'notes',icon:'fa-sticky-note',label:'Notes'},
+            {id:'sentiment',icon:'fa-face-smile',label:'Sentiment'},
+            {id:'timestamp',icon:'fa-clock',label:'Timestamp'}
+        ],
+        twitter: [
+            {id:'handle',icon:'fa-at',label:'Handle/@user'},
+            {id:'tweet_text',icon:'fa-comment',label:'Tweet Text'},
+            {id:'retweets',icon:'fa-retweet',label:'Retweets'},
+            {id:'likes',icon:'fa-heart',label:'Likes'},
+            {id:'replies',icon:'fa-reply',label:'Replies'},
+            {id:'hashtags',icon:'fa-hashtag',label:'Hashtags'},
+            {id:'mentions',icon:'fa-at',label:'Mentions'},
+            {id:'media',icon:'fa-image',label:'Media'},
+            {id:'timestamp',icon:'fa-clock',label:'Timestamp'},
+            {id:'sentiment',icon:'fa-face-smile',label:'Sentiment'}
+        ],
+        facebook: [
+            {id:'page',icon:'fa-flag',label:'Page/Group'},
+            {id:'post_text',icon:'fa-comment',label:'Post Text'},
+            {id:'comments',icon:'fa-comments',label:'Comments'},
+            {id:'reactions',icon:'fa-thumbs-up',label:'Reactions'},
+            {id:'shares',icon:'fa-share',label:'Shares'},
+            {id:'author',icon:'fa-user',label:'Author'},
+            {id:'media',icon:'fa-image',label:'Media/Photos'},
+            {id:'messenger',icon:'fa-message',label:'Messenger DMs'},
+            {id:'timestamp',icon:'fa-clock',label:'Timestamp'},
+            {id:'sentiment',icon:'fa-face-smile',label:'Sentiment'}
+        ],
+        instagram: [
+            {id:'username',icon:'fa-at',label:'Username'},
+            {id:'caption',icon:'fa-comment',label:'Caption'},
+            {id:'comments',icon:'fa-comments',label:'Comments'},
+            {id:'likes',icon:'fa-heart',label:'Likes'},
+            {id:'stories',icon:'fa-circle-play',label:'Stories'},
+            {id:'reels',icon:'fa-film',label:'Reels'},
+            {id:'hashtags',icon:'fa-hashtag',label:'Hashtags'},
+            {id:'dms',icon:'fa-message',label:'DMs'},
+            {id:'timestamp',icon:'fa-clock',label:'Timestamp'},
+            {id:'sentiment',icon:'fa-face-smile',label:'Sentiment'}
+        ],
+        linkedin: [
+            {id:'author',icon:'fa-user-tie',label:'Author/Company'},
+            {id:'post_text',icon:'fa-comment',label:'Post Content'},
+            {id:'comments',icon:'fa-comments',label:'Comments'},
+            {id:'reactions',icon:'fa-thumbs-up',label:'Reactions'},
+            {id:'shares',icon:'fa-share',label:'Reposts'},
+            {id:'articles',icon:'fa-newspaper',label:'Articles'},
+            {id:'hashtags',icon:'fa-hashtag',label:'Hashtags'},
+            {id:'messages',icon:'fa-message',label:'InMail/DMs'},
+            {id:'timestamp',icon:'fa-clock',label:'Timestamp'},
+            {id:'sentiment',icon:'fa-face-smile',label:'Sentiment'}
+        ],
+        desk: [
+            {id:'subject',icon:'fa-ticket',label:'Subject'},
+            {id:'description',icon:'fa-align-left',label:'Description'},
+            {id:'comments',icon:'fa-comments',label:'Comments'},
+            {id:'priority',icon:'fa-circle-exclamation',label:'Priority'},
+            {id:'status',icon:'fa-flag',label:'Status'},
+            {id:'agent',icon:'fa-user-tie',label:'Agent'},
+            {id:'customer',icon:'fa-user',label:'Customer'},
+            {id:'department',icon:'fa-folder',label:'Department'},
+            {id:'rating',icon:'fa-star',label:'CSAT Rating'},
+            {id:'tags',icon:'fa-tags',label:'Tags'},
+            {id:'resolution_time',icon:'fa-clock',label:'Resolution Time'},
+            {id:'sentiment',icon:'fa-face-smile',label:'Sentiment'}
+        ]
+    };
+
+    const selectedFields = {};
+    Object.keys(fields).forEach(s => { selectedFields[s] = []; });
+
+    function renderOptions(source) {
+        const container = document.getElementById('ms-options-' + source);
+        if (!container) return;
+        container.innerHTML = fields[source].map(f => `
+            <div class="ms-option ${selectedFields[source].includes(f.id)?'selected':''}" data-source="${source}" data-field="${f.id}" onclick="toggleField('${source}','${f.id}')">
+                <i class="fas ${f.icon}"></i>
+                <span>${f.label}</span>
+            </div>
+        `).join('');
+        updateTags(source);
+    }
+
+    function updateTags(source) {
+        const tagsEl = document.getElementById('ms-tags-' + source);
+        const placeholder = document.getElementById('ms-placeholder-' + source);
+        if (!tagsEl || !placeholder) return;
+        const sel = selectedFields[source];
+        if (sel.length === 0) {
+            placeholder.style.display = '';
+            tagsEl.innerHTML = '';
+        } else {
+            placeholder.style.display = 'none';
+            tagsEl.innerHTML = sel.map(id => {
+                const f = fields[source].find(x => x.id === id);
+                return `<div class="field-tag">${f.label}<span class="remove-field" onclick="event.stopPropagation();removeField('${source}','${id}')"><i class="fas fa-times"></i></span></div>`;
+            }).join('');
+        }
+    }
+
+    function toggleField(source, fieldId) {
+        const idx = selectedFields[source].indexOf(fieldId);
+        if (idx > -1) selectedFields[source].splice(idx, 1);
+        else selectedFields[source].push(fieldId);
+        renderOptions(source);
+    }
+
+    function removeField(source, fieldId) {
+        selectedFields[source] = selectedFields[source].filter(f => f !== fieldId);
+        renderOptions(source);
+    }
+
+    function selectAll(source) {
+        selectedFields[source] = fields[source].map(f => f.id);
+        renderOptions(source);
+    }
+
+    function selectNone(source) {
+        selectedFields[source] = [];
+        renderOptions(source);
+    }
+
+    function toggleMultiSelect(source) {
+        const dropdown = document.getElementById('ms-dropdown-' + source);
+        const isOpen = dropdown.classList.contains('open');
+        document.querySelectorAll('.multi-select-dropdown').forEach(d => d.classList.remove('open'));
+        document.querySelectorAll('.multi-select-box').forEach(b => b.classList.remove('open'));
+        if (!isOpen) {
+            dropdown.classList.add('open');
+            dropdown.parentElement.querySelector('.multi-select-box').classList.add('open');
+        }
+    }
+
+    function filterFields(source, query) {
+        const options = document.querySelectorAll(`#ms-options-${source} .ms-option`);
+        const q = query.toLowerCase();
+        options.forEach(opt => { opt.style.display = opt.textContent.toLowerCase().includes(q) ? '' : 'none'; });
+    }
+
+    // Initialize defaults
+    Object.keys(fields).forEach(s => {
+        selectedFields[s] = fields[s].slice(0, 4).map(f => f.id);
+        renderOptions(s);
+    });
+
+    // Source dropdown
+    let selectedSources = [];
+    let activeTab = null;
+    const sourceNames = {email:'Email',survey:'Zoho Survey',calls:'Calls',social:'Social',desk:'Zoho Desk'};
+    const sourceIcons = {email:'fa-envelope',survey:'fa-clipboard-list',calls:'fa-phone',social:'fa-share-nodes',desk:'fa-ticket'};
+
+    function toggleSourceDropdown() {
+        const btn = document.getElementById('sourceDropdownBtn');
+        const menu = document.getElementById('sourceDropdownMenu');
+        btn.classList.toggle('open');
+        menu.classList.toggle('open');
+    }
+
+    function toggleSourceItem(el) {
+        const source = el.dataset.source;
+        el.classList.toggle('selected');
+        if (el.classList.contains('selected')) {
+            if (!selectedSources.includes(source)) selectedSources.push(source);
+        } else {
+            selectedSources = selectedSources.filter(s => s !== source);
+        }
+        updateSourceUI();
+    }
+
+    function removeSource(source) {
+        selectedSources = selectedSources.filter(s => s !== source);
+        document.querySelectorAll('.source-dropdown-item').forEach(el => {
+            if (el.dataset.source === source) el.classList.remove('selected');
+        });
+        updateSourceUI();
+    }
+
+    function updateSourceUI() {
+        const tagsEl = document.getElementById('selectedTags');
+        tagsEl.innerHTML = selectedSources.map(s =>
+            `<div class="selected-tag">${sourceNames[s]}<span class="remove-tag" onclick="removeSource('${s}')"><i class="fas fa-times"></i></span></div>`
+        ).join('');
+        const label = document.getElementById('sourceDropdownLabel');
+        label.textContent = selectedSources.length > 0 ? `${selectedSources.length} source(s) selected` : 'Choose data sources...';
+        const container = document.getElementById('preferencesContainer');
+        if (selectedSources.length > 0) {
+            container.style.display = 'block';
+            buildTabs();
+            if (!activeTab || !selectedSources.includes(activeTab)) switchTab(selectedSources[0]);
+        } else {
+            container.style.display = 'none';
+        }
+    }
+
+    function buildTabs() {
+        document.getElementById('sourceTabs').innerHTML = selectedSources.map(s =>
+            `<div class="source-tab ${s===activeTab?'active':''}" onclick="switchTab('${s}')"><i class="fas ${sourceIcons[s]}"></i> ${sourceNames[s]}</div>`
+        ).join('');
+    }
+
+    function switchTab(source) {
+        activeTab = source;
+        document.querySelectorAll('.source-preferences').forEach(p => p.classList.remove('active'));
+        const el = document.getElementById('pref-' + source);
+        if (el) el.classList.add('active');
+        buildTabs();
+    }
+
+    function switchSocialPlatform(platform) {
+        document.querySelectorAll('.social-subtab').forEach(t => t.classList.remove('active'));
+        document.querySelector(`.social-subtab[data-platform="${platform}"]`).classList.add('active');
+        document.querySelectorAll('.social-panel').forEach(p => p.classList.remove('active'));
+        document.getElementById('social-' + platform).classList.add('active');
+    }
+
+    function toggleFilter(source) {
+        const body = document.getElementById('filter-body-' + source);
+        const toggle = body.previousElementSibling;
+        toggle.classList.toggle('open');
+        body.classList.toggle('open');
+    }
+
+    function addFilter(source) {
+        const container = document.getElementById(source + '-filters');
+        const row = document.createElement('div');
+        row.className = 'filter-row';
+        const selects = container.querySelector('.filter-row').querySelectorAll('select');
+        row.innerHTML = `<select>${selects[0].innerHTML}</select><select>${selects[1].innerHTML}</select><input type="text" placeholder="Value..."><button class="btn-icon btn-remove-filter" onclick="this.closest('.filter-row').remove()"><i class="fas fa-minus"></i></button>`;
+        container.appendChild(row);
+    }
+
+    function saveSettings() { showToast('Settings saved successfully!'); }
+    function resetAll() {
+        selectedSources = [];
+        document.querySelectorAll('.source-dropdown-item').forEach(el => el.classList.remove('selected'));
+        updateSourceUI();
+        showToast('Settings reset');
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        document.getElementById('toastMessage').textContent = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2500);
+    }
+
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.source-dropdown-wrap')) {
+            document.getElementById('sourceDropdownBtn').classList.remove('open');
+            document.getElementById('sourceDropdownMenu').classList.remove('open');
+        }
+        if (!e.target.closest('.multi-select-wrap')) {
+            document.querySelectorAll('.multi-select-dropdown').forEach(d => d.classList.remove('open'));
+            document.querySelectorAll('.multi-select-box').forEach(b => b.classList.remove('open'));
+        }
+    });
+    </script>
+</body>
+</html>
